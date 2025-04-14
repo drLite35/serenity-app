@@ -70,13 +70,7 @@ class _UserInfoScreenState extends State<UserInfoScreen> with SingleTickerProvid
         await prefs.setDouble('userWeight', double.parse(_weightController.text));
 
         if (mounted) {
-          // TODO: Navigate to PSS questionnaire screen
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Information saved successfully'),
-              backgroundColor: Color(0xFF7AB8B0),
-            ),
-          );
+          Navigator.pushReplacementNamed(context, '/pss-questionnaire');
         }
       } catch (e) {
         if (mounted) {

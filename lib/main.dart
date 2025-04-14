@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/opening_screen.dart';
+import 'screens/user_info_screen.dart';
+import 'screens/pss_questionnaire_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,12 +33,18 @@ class MyApp extends StatelessWidget {
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4DB6AC),
+          seedColor: const Color(0xFF7AB8B0),
           brightness: Brightness.light,
         ),
         useMaterial3: true,
+        fontFamily: 'Poppins',
       ),
       home: const OpeningScreen(),
+      routes: {
+        '/opening': (context) => const OpeningScreen(),
+        '/user-info': (context) => const UserInfoScreen(),
+        '/pss-questionnaire': (context) => const PSSQuestionnaireScreen(),
+      },
     );
   }
 }
