@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/theme.dart';
 
 class PSSQuestionnaireScreen extends StatefulWidget {
   const PSSQuestionnaireScreen({super.key});
@@ -8,497 +8,305 @@ class PSSQuestionnaireScreen extends StatefulWidget {
   State<PSSQuestionnaireScreen> createState() => _PSSQuestionnaireScreenState();
 }
 
-class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
+class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
+    with SingleTickerProviderStateMixin {
+  final PageController _pageController = PageController();
+  late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-  bool _isLoading = false;
-  int _currentQuestionIndex = 0;
-  List<int> _answers = List.filled(5, 0);
+  int _currentQuestion = 0;
+  final List<int?> _answers = List.filled(10, null);
 
-  final List<Map<String, dynamic>> _questions = [
-    {
-      'question': 'In the last month, how often have you felt that you were unable to control the important things in your life?',
-      'options': ['Never', 'Almost Never', 'Sometimes', 'Fairly Often', 'Very Often'],
-    },
-    {
-      'question': 'In the last month, how often have you felt confident about your ability to handle your personal problems?',
-      'options': ['Never', 'Almost Never', 'Sometimes', 'Fairly Often', 'Very Often'],
-      'isReversed': true,
-    },
-    {
-      'question': 'In the last month, how often have you felt that things were going your way?',
-      'options': ['Never', 'Almost Never', 'Sometimes', 'Fairly Often', 'Very Often'],
-      'isReversed': true,
-    },
-    {
-      'question': 'In the last month, how often have you felt difficulties were piling up so high that you could not overcome them?',
-      'options': ['Never', 'Almost Never', 'Sometimes', 'Fairly Often', 'Very Often'],
-    },
-    {
-      'question': 'In the last month, how often have you felt nervous and stressed?',
-      'options': ['Never', 'Almost Never', 'Sometimes', 'Fairly Often', 'Very Often'],
-    },
+  final List<String> _questions = [
+    'In the last month, how often have you been upset because of something that happened unexpectedly?',
+    'In the last month, how often have you felt that you were unable to control the important things in your life?',
+    'In the last month, how often have you felt nervous and stressed?',
+    'In the last month, how often have you felt confident about your ability to handle your personal problems?',
+    'In the last month, how often have you felt that things were going your way?',
+    'In the last month, how often have you found that you could not cope with all the things that you had to do?',
+    'In the last month, how often have you been able to control irritations in your life?',
+    'In the last month, how often have you felt that you were on top of things?',
+    'In the last month, how often have you been angered because of things that happened that were outside of your control?',
+    'In the last month, how often have you felt difficulties were piling up so high that you could not overcome them?',
+  ];
+
+  final List<String> _options = [
+    'Never',
+    'Almost Never',
+    'Sometimes',
+    'Fairly Often',
+    'Very Often',
   ];
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
+        parent: _fadeController,
+        curve: Curves.easeOut,
       ),
     );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutBack,
-      ),
-    );
-
-    _animationController.forward();
+    _fadeController.forward();
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _pageController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
-  int _calculateTotalScore() {
-    int total = 0;
-    for (int i = 0; i < _answers.length; i++) {
-      if (_questions[i]['isReversed'] == true) {
-        total += (4 - _answers[i]);
-      } else {
-        total += _answers[i];
-      }
-    }
-    return total;
-  }
-
-  String _getStressLevel(int score) {
-    if (score <= 13) return 'Low Stress';
-    if (score <= 26) return 'Moderate Stress';
-    return 'High Stress';
-  }
-
-  String _getStressDescription(int score) {
-    if (score <= 13) {
-      return 'You are experiencing low levels of stress. This is generally considered a healthy range. Continue practicing stress management techniques to maintain this level.';
-    } else if (score <= 26) {
-      return 'You are experiencing moderate levels of stress. This is common and manageable. Consider incorporating more stress-reduction activities into your routine.';
+  void _nextQuestion() {
+    if (_currentQuestion < _questions.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
     } else {
-      return 'You are experiencing high levels of stress. It may be helpful to seek additional support and implement stress management strategies. Consider consulting with a healthcare professional.';
+      _showResults();
     }
   }
 
-  Future<void> _saveResults() async {
-    setState(() => _isLoading = true);
+  void _showResults() {
+    // Calculate PSS score
+    int score = 0;
+    for (int i = 0; i < _answers.length; i++) {
+      if (_answers[i] != null) {
+        // Questions 4, 5, 7, and 8 are positively stated items
+        if ([3, 4, 6, 7].contains(i)) {
+          score += 4 - (_answers[i] ?? 0);
+        } else {
+          score += _answers[i] ?? 0;
+        }
+      }
+    }
     
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final totalScore = _calculateTotalScore();
-      await prefs.setInt('pssScore', totalScore);
-      await prefs.setString('pssLevel', _getStressLevel(totalScore));
-      await prefs.setString('pssDate', DateTime.now().toIso8601String());
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PSSResultsScreen(
-              score: totalScore,
-              level: _getStressLevel(totalScore),
-              description: _getStressDescription(totalScore),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving results: $e'),
-            backgroundColor: Colors.red[300],
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    // Navigate to results screen
+    Navigator.pushReplacementNamed(context, '/pss_results', arguments: score);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F9F6),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 200,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
+  Widget _buildProgressBar() {
+    return Container(
+      height: 6,
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryMint.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              Container(
+                width: constraints.maxWidth * ((_currentQuestion + 1) / _questions.length),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF7AB8B0).withOpacity(0.8),
-                      const Color(0xFFB8E0D2).withOpacity(0.8),
+                      AppTheme.primaryMint,
+                      AppTheme.primaryMint.withOpacity(0.8),
                     ],
                   ),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.psychology_outlined,
-                        size: 50,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Stress Assessment',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w300,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        'Question ${_currentQuestionIndex + 1} of ${_questions.length}',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ],
-                  ),
+                  borderRadius: BorderRadius.circular(3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryMint.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _questions[_currentQuestionIndex]['question'],
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Color(0xFF2C3E50),
-                                height: 1.4,
-                              ),
-                            ),
-                            const SizedBox(height: 30),
-                            ...List.generate(5, (index) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 15),
-                                child: RadioListTile<int>(
-                                  title: Text(
-                                    _questions[_currentQuestionIndex]['options'][index],
-                                    style: const TextStyle(
-                                      color: Color(0xFF2C3E50),
-                                    ),
-                                  ),
-                                  value: index,
-                                  groupValue: _answers[_currentQuestionIndex],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _answers[_currentQuestionIndex] = value!;
-                                    });
-                                  },
-                                  activeColor: const Color(0xFF7AB8B0),
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (_currentQuestionIndex > 0)
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _currentQuestionIndex--;
-                                  _animationController.reset();
-                                  _animationController.forward();
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 30,
-                                  vertical: 15,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Previous',
-                                style: TextStyle(
-                                  color: Color(0xFF7AB8B0),
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          if (_currentQuestionIndex < _questions.length - 1)
-                            ElevatedButton(
-                              onPressed: () {
-                                setState(() {
-                                  _currentQuestionIndex++;
-                                  _animationController.reset();
-                                  _animationController.forward();
-                                });
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF7AB8B0),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 30,
-                                  vertical: 15,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Next',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            )
-                          else
-                            ElevatedButton(
-                              onPressed: _isLoading ? null : _saveResults,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF7AB8B0),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 30,
-                                  vertical: 15,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'Submit',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
-}
 
-class PSSResultsScreen extends StatelessWidget {
-  final int score;
-  final String level;
-  final String description;
+  Widget _buildQuestionCard(String question) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryMint.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Text(
+        question,
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          color: AppTheme.textDark,
+          height: 1.4,
+          fontWeight: FontWeight.w500,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
 
-  const PSSResultsScreen({
-    super.key,
-    required this.score,
-    required this.level,
-    required this.description,
-  });
+  Widget _buildOptionButton(int index, String option) {
+    final bool isSelected = _answers[_currentQuestion] == index;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _answers[_currentQuestion] = index;
+          });
+          Future.delayed(const Duration(milliseconds: 300), _nextQuestion);
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryMint.withOpacity(0.1) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? AppTheme.primaryMint : Colors.transparent,
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryMint.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 20),
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected
+                        ? AppTheme.primaryMint
+                        : AppTheme.textLight.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? Center(
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.primaryMint,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                option,
+                style: TextStyle(
+                  color: isSelected ? AppTheme.textDark : AppTheme.textLight,
+                  fontSize: 16,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F9F6),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 200,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF7AB8B0).withOpacity(0.8),
-                      const Color(0xFFB8E0D2).withOpacity(0.8),
-                    ],
-                  ),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.analytics_outlined,
-                        size: 50,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Your Results',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w300,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              AppTheme.primaryMint.withOpacity(0.05),
+            ],
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'PSS Score: $score',
-                          style: const TextStyle(
-                            fontSize: 28,
-                            color: Color(0xFF7AB8B0),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          level,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            color: Color(0xFF2C3E50),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          description,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF2C3E50),
-                            height: 1.5,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  ElevatedButton(
-                    onPressed: () {
-                      // TODO: Navigate to next screen
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7AB8B0),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Continue',
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Question ${_currentQuestion + 1} of ${_questions.length}',
                       style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
+                        color: AppTheme.textDark,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ],
+                    Text(
+                      '${((_currentQuestion + 1) / _questions.length * 100).round()}%',
+                      style: TextStyle(
+                        color: AppTheme.primaryMint,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 8),
+              _buildProgressBar(),
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (page) {
+                    setState(() {
+                      _currentQuestion = page;
+                    });
+                    _fadeController.reset();
+                    _fadeController.forward();
+                  },
+                  itemCount: _questions.length,
+                  itemBuilder: (context, index) {
+                    return FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 24),
+                          _buildQuestionCard(_questions[index]),
+                          const SizedBox(height: 24),
+                          ...List.generate(
+                            _options.length,
+                            (optionIndex) => _buildOptionButton(
+                              optionIndex,
+                              _options[optionIndex],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

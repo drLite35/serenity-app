@@ -29,7 +29,9 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>
-	<array/>
+	<array>
+		<string>fetch</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -47,5 +49,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Serenity needs access to your health data to track your steps, distance, and heart rate for stress monitoring and wellness tracking.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Serenity needs permission to update your health data for tracking your wellness metrics.</string>
 </dict>
 </plist>
