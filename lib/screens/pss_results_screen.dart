@@ -3,11 +3,11 @@ import '../utils/theme.dart';
 import 'dart:math' as math;
 
 class PSSResultsScreen extends StatefulWidget {
-  final Map<String, dynamic> results;
+  final int currentScore;
 
   const PSSResultsScreen({
     super.key,
-    required this.results,
+    required this.currentScore,
   });
 
   @override
@@ -30,7 +30,7 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
 
     _scoreAnimation = Tween<double>(
       begin: 0,
-      end: (widget.results['score'] as double),
+      end: widget.currentScore.toDouble(),
     ).animate(
       CurvedAnimation(
         parent: _controller,
@@ -58,95 +58,58 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
   }
 
   String _getStressLevel() {
-    final score = widget.results['score'];
-    if (score is double) {
-      if (score <= 10) return 'Low Stress';
-      if (score <= 20) return 'Moderate Stress';
-      return 'High Stress';
-    }
-    return 'Unknown Stress Level';
+    final score = widget.currentScore;
+    if (score <= 15) return 'Low Stress';
+    if (score <= 23) return 'Moderate Stress';
+    return 'High Stress';
   }
 
-  Color _getStressColor(dynamic score) {
-    if (score is double) {
-      if (score <= 10) {
-        return AppTheme.primaryMint;
-      } else if (score <= 20) {
-        return const Color(0xFFE6B566); // Orange
-      } else {
-        return const Color(0xFFE67066); // Red
-      }
-    } else if (score is int) {
-      if (score <= 10) {
-        return AppTheme.primaryMint;
-      } else if (score <= 20) {
-        return const Color(0xFFE6B566); // Orange
-      } else {
-        return const Color(0xFFE67066); // Red
-      }
+  Color _getStressColor() {
+    final score = widget.currentScore;
+    if (score <= 15) {
+      return AppTheme.primaryMint;
+    } else if (score <= 23) {
+      return const Color(0xFFE6B566); // Orange
+    } else {
+      return const Color(0xFFE67066); // Red
     }
-    return AppTheme.primaryMint; // Default color
   }
 
   String _getDescription() {
-    final score = widget.results['score'];
-    final baselinePss = widget.results['baselinePss'] as int?;
-    final baselineText = baselinePss != null 
-        ? ' Compared to your baseline stress level (${_getBaselineText(baselinePss)}), '
-        : ' ';
-
-    if (score is double) {
-      if (score <= 10) {
-        return 'You\'re managing stress well.$baselineText Keep practicing mindfulness and maintaining your healthy routines.';
-      } else if (score <= 20) {
-        return 'You\'re experiencing moderate stress.$baselineText Consider incorporating more relaxation techniques into your daily routine.';
-      } else {
-        return 'Your stress levels are high.$baselineText We recommend focusing on stress management and possibly seeking professional support.';
-      }
-    }
-    return 'Unable to determine stress level.';
-  }
-
-  String _getBaselineText(int baseline) {
-    switch (baseline) {
-      case 0:
-        return 'Low';
-      case 1:
-        return 'Normal';
-      case 2:
-        return 'High';
-      default:
-        return 'Unknown';
+    final score = widget.currentScore;
+    if (score <= 15) {
+      return 'You\'re managing stress well. Keep practicing mindfulness and maintaining your healthy routines.';
+    } else if (score <= 23) {
+      return 'You\'re experiencing moderate stress. Consider incorporating more relaxation techniques into your daily routine.';
+    } else {
+      return 'Your stress levels are high. We recommend focusing on stress management and possibly seeking professional support.';
     }
   }
 
   List<String> _getRecommendations() {
-    final score = widget.results['score'];
-    if (score is double) {
-      if (score <= 10) {
-        return [
-          'Continue your mindfulness practice',
-          'Maintain regular exercise',
-          'Keep up your healthy sleep schedule',
-        ];
-      } else if (score <= 20) {
-        return [
-          'Try deep breathing exercises',
-          'Practice daily meditation',
-          'Take regular breaks during work',
-          'Consider gentle yoga or stretching',
-        ];
-      } else {
-        return [
-          'Prioritize stress management',
-          'Practice meditation twice daily',
-          'Consider professional support',
-          'Focus on quality sleep',
-          'Limit caffeine and screen time',
-        ];
-      }
+    final score = widget.currentScore;
+    if (score <= 15) {
+      return [
+        'Continue your mindfulness practice',
+        'Maintain regular exercise',
+        'Keep up your healthy sleep schedule',
+      ];
+    } else if (score <= 23) {
+      return [
+        'Try deep breathing exercises',
+        'Practice daily meditation',
+        'Take regular breaks during work',
+        'Consider gentle yoga or stretching',
+      ];
+    } else {
+      return [
+        'Prioritize stress management',
+        'Practice meditation twice daily',
+        'Consider professional support',
+        'Focus on quality sleep',
+        'Limit caffeine and screen time',
+      ];
     }
-    return ['Unable to provide recommendations at this time.'];
   }
 
   Widget _buildScoreIndicator() {
@@ -157,8 +120,8 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
           size: const Size(200, 200),
           painter: ScoreIndicatorPainter(
             score: _scoreAnimation.value,
-            maxScore: 40,
-            color: _getStressColor(widget.results['score']),
+            maxScore: 30,
+            color: _getStressColor(),
             backgroundColor: AppTheme.primaryMint.withOpacity(0.1),
           ),
           child: Center(
@@ -226,13 +189,13 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: _getStressColor(widget.results['score']).withOpacity(0.1),
+                              color: _getStressColor().withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               _getStressLevel(),
                               style: TextStyle(
-                                color: _getStressColor(widget.results['score']),
+                                color: _getStressColor(),
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                               ),
