@@ -59,16 +59,16 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
 
   String _getStressLevel() {
     final score = widget.currentScore;
-    if (score <= 15) return 'Low Stress';
-    if (score <= 23) return 'Moderate Stress';
+    if (score <= 17) return 'Low Stress';
+    if (score <= 26) return 'Moderate Stress';
     return 'High Stress';
   }
 
   Color _getStressColor() {
     final score = widget.currentScore;
-    if (score <= 15) {
+    if (score <= 17) {
       return AppTheme.primaryMint;
-    } else if (score <= 23) {
+    } else if (score <= 26) {
       return const Color(0xFFE6B566); // Orange
     } else {
       return const Color(0xFFE67066); // Red
@@ -77,9 +77,9 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
 
   String _getDescription() {
     final score = widget.currentScore;
-    if (score <= 15) {
+    if (score <= 20) {
       return 'You\'re managing stress well. Keep practicing mindfulness and maintaining your healthy routines.';
-    } else if (score <= 23) {
+    } else if (score <= 35) {
       return 'You\'re experiencing moderate stress. Consider incorporating more relaxation techniques into your daily routine.';
     } else {
       return 'Your stress levels are high. We recommend focusing on stress management and possibly seeking professional support.';
@@ -88,13 +88,13 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
 
   List<String> _getRecommendations() {
     final score = widget.currentScore;
-    if (score <= 15) {
+    if (score <= 17) {
       return [
         'Continue your mindfulness practice',
         'Maintain regular exercise',
         'Keep up your healthy sleep schedule',
       ];
-    } else if (score <= 23) {
+    } else if (score <= 26) {
       return [
         'Try deep breathing exercises',
         'Practice daily meditation',

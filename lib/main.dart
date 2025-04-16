@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'utils/theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -44,14 +45,17 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: AppTheme.backgroundLight,
         appBarTheme: AppBarTheme(
-          backgroundColor: AppTheme.backgroundLight,
+          backgroundColor: Colors.transparent,
           elevation: 0,
+          centerTitle: true,
           iconTheme: IconThemeData(color: AppTheme.primaryMint),
           titleTextStyle: TextStyle(
             color: AppTheme.textDark,
-            fontSize: 20,
+            fontSize: 24,
             fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
           ),
+          systemOverlayStyle: SystemUiOverlayStyle.dark,
         ),
         textTheme: TextTheme(
           bodyLarge: TextStyle(color: AppTheme.textDark),
