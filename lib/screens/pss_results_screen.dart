@@ -30,7 +30,7 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
 
     _scoreAnimation = Tween<double>(
       begin: 0,
-      end: widget.results['score'].toDouble(),
+      end: (widget.results['score'] as double),
     ).animate(
       CurvedAnimation(
         parent: _controller,
@@ -58,10 +58,13 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
   }
 
   String _getStressLevel() {
-    final score = widget.results['score'] as int;
-    if (score <= 13) return 'Low Stress';
-    if (score <= 26) return 'Moderate Stress';
-    return 'High Stress';
+    final score = widget.results['score'];
+    if (score is double) {
+      if (score <= 10) return 'Low Stress';
+      if (score <= 20) return 'Moderate Stress';
+      return 'High Stress';
+    }
+    return 'Unknown Stress Level';
   }
 
   Color _getStressColor(dynamic score) {
@@ -86,19 +89,22 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
   }
 
   String _getDescription() {
-    final score = widget.results['score'] as int;
+    final score = widget.results['score'];
     final baselinePss = widget.results['baselinePss'] as int?;
     final baselineText = baselinePss != null 
         ? ' Compared to your baseline stress level (${_getBaselineText(baselinePss)}), '
         : ' ';
 
-    if (score <= 13) {
-      return 'You\'re managing stress well.$baselineText Keep practicing mindfulness and maintaining your healthy routines.';
-    } else if (score <= 26) {
-      return 'You\'re experiencing moderate stress.$baselineText Consider incorporating more relaxation techniques into your daily routine.';
-    } else {
-      return 'Your stress levels are high.$baselineText We recommend focusing on stress management and possibly seeking professional support.';
+    if (score is double) {
+      if (score <= 10) {
+        return 'You\'re managing stress well.$baselineText Keep practicing mindfulness and maintaining your healthy routines.';
+      } else if (score <= 20) {
+        return 'You\'re experiencing moderate stress.$baselineText Consider incorporating more relaxation techniques into your daily routine.';
+      } else {
+        return 'Your stress levels are high.$baselineText We recommend focusing on stress management and possibly seeking professional support.';
+      }
     }
+    return 'Unable to determine stress level.';
   }
 
   String _getBaselineText(int baseline) {
@@ -115,29 +121,32 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
   }
 
   List<String> _getRecommendations() {
-    final score = widget.results['score'] as int;
-    if (score <= 13) {
-      return [
-        'Continue your mindfulness practice',
-        'Maintain regular exercise',
-        'Keep up your healthy sleep schedule',
-      ];
-    } else if (score <= 26) {
-      return [
-        'Try deep breathing exercises',
-        'Practice daily meditation',
-        'Take regular breaks during work',
-        'Consider gentle yoga or stretching',
-      ];
-    } else {
-      return [
-        'Prioritize stress management',
-        'Practice meditation twice daily',
-        'Consider professional support',
-        'Focus on quality sleep',
-        'Limit caffeine and screen time',
-      ];
+    final score = widget.results['score'];
+    if (score is double) {
+      if (score <= 10) {
+        return [
+          'Continue your mindfulness practice',
+          'Maintain regular exercise',
+          'Keep up your healthy sleep schedule',
+        ];
+      } else if (score <= 20) {
+        return [
+          'Try deep breathing exercises',
+          'Practice daily meditation',
+          'Take regular breaks during work',
+          'Consider gentle yoga or stretching',
+        ];
+      } else {
+        return [
+          'Prioritize stress management',
+          'Practice meditation twice daily',
+          'Consider professional support',
+          'Focus on quality sleep',
+          'Limit caffeine and screen time',
+        ];
+      }
     }
+    return ['Unable to provide recommendations at this time.'];
   }
 
   Widget _buildScoreIndicator() {
