@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
+import '../services/user_service.dart';
 
 class PSSQuestionnaireScreen extends StatefulWidget {
   const PSSQuestionnaireScreen({super.key});
@@ -11,6 +12,7 @@ class PSSQuestionnaireScreen extends StatefulWidget {
 class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
     with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
+  final UserService userService = UserService();
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
   int _currentQuestion = 0;
@@ -33,8 +35,8 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
   ];
 
   final List<String> _options = [
-    'Never',
     'Almost Never',
+    'Never',
     'Sometimes',
     'Fairly Often',
     'Very Often',
@@ -104,90 +106,22 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
   }
 
   void _showResults() {
-    // Validate that we have all 13 responses
-    if (_answers.any((answer) => answer == null)) {
-      // Handle incomplete responses
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please answer all questions to see your results.'),
-        ),
-      );
-      return;
-    }
-
-    // Calculate raw score for first 10 questions (PSS questions)
-    int rawScore = 0;
-    for (int i = 0; i < 10; i++) {
-      if ([3, 4, 6, 7].contains(i)) {
-        // Reverse scoring for positive items (4,5,7,8)
-        rawScore += 4 - (_answers[i] ?? 0);
-      } else {
-        // Normal scoring for negative items
-        rawScore += _answers[i] ?? 0;
+    // Calculate total score
+    int totalScore = 0;
+    for (var answer in _answers) {
+      if (answer != null) {
+        totalScore += answer;
       }
     }
 
-    // Calculate additional metrics score (last 3 questions)
-    int additionalScore = 0;
-    for (int i = 10; i < 13; i++) {
-      additionalScore += _answers[i] ?? 0;
-    }
+    // Save the score
+    userService.saveBaselinePss(totalScore.toDouble());
 
-    // Normalize the PSS score to 30-point scale
-    // Formula: (rawScore / maxPossibleScore) * 30
-    double normalizedScore = (rawScore / 40) * 30; // 40 is max possible for first 10 questions
-    
-    // Round to 2 decimal places
-    normalizedScore = double.parse(normalizedScore.toStringAsFixed(2));
-
-    // Determine stress level
-    String stressLevel;
-    if (normalizedScore <= 10) {
-      stressLevel = 'Low';
-    } else if (normalizedScore <= 20) {
-      stressLevel = 'Moderate';
-    } else {
-      stressLevel = 'High';
-    }
-
-    // Get additional metrics
-    int? bpRange = _answers[10];
-    int? baselinePss = _answers[11];
-    int? pulseRange = _answers[12];
-    
-    // Calculate baseline PSS level based on additional metrics
-    int baselineLevel = 1; // Default to normal
-    if (bpRange != null && pulseRange != null) {
-      // Higher values indicate higher stress
-      int stressIndicators = 0;
-      
-      // BP contribution
-      if (bpRange == 2) stressIndicators++; // High BP
-      if (bpRange == 0) stressIndicators--; // Low BP
-      
-      // Pulse contribution
-      if (pulseRange == 2) stressIndicators++; // High pulse
-      if (pulseRange == 0) stressIndicators--; // Low pulse
-      
-      // Determine baseline level
-      if (stressIndicators >= 1) {
-        baselineLevel = 2; // High stress
-      } else if (stressIndicators <= -1) {
-        baselineLevel = 0; // Low stress
-      }
-    }
-    
-    // Navigate to results screen with all scores
+    // Navigate to results screen
     Navigator.pushReplacementNamed(
-      context, 
-      '/pss_results', 
-      arguments: {
-        'score': normalizedScore,
-        'stressLevel': stressLevel,
-        'bpRange': bpRange,
-        'baselinePss': baselinePss ?? baselineLevel,
-        'pulseRange': pulseRange,
-      }
+      context,
+      '/pss-results',
+      arguments: totalScore,
     );
   }
 

@@ -71,10 +71,10 @@ class MyApp extends StatelessWidget {
             builder: (context) => const PSSQuestionnaireScreen(),
           );
         }
-        if (settings.name == '/pss_results') {
+        if (settings.name == '/pss-results') {
           final score = settings.arguments as int;
           return MaterialPageRoute(
-            builder: (context) => PSSResultsScreen(score: score),
+            builder: (context) => PSSResultsScreen(currentScore: score),
           );
         }
         if (settings.name == '/biometric_connect') {
