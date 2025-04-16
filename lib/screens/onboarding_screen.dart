@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
+import '../services/user_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -47,14 +48,54 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
 
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
+      // Validate current page inputs before proceeding
+      if (_currentPage == 1) {
+        if (_nameController.text.isEmpty || _ageController.text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please fill in all fields'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        // Validate age is a number and within reasonable range
+        final age = int.tryParse(_ageController.text);
+        if (age == null || age < 13 || age > 120) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please enter a valid age between 13 and 120'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      } else if (_currentPage == 2 && _selectedGender == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select your gender'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       _pageController.nextPage(
         duration: const Duration(milliseconds: 600),
         curve: Curves.easeInOut,
       );
     } else {
-      // Navigate to PSS questionnaire
+      // Save user information before proceeding to PSS questionnaire
+      _saveUserInfo();
       Navigator.pushReplacementNamed(context, '/pss');
     }
+  }
+
+  Future<void> _saveUserInfo() async {
+    final userService = UserService();
+    await userService.saveName(_nameController.text);
+    await userService.saveAge(int.parse(_ageController.text));
+    await userService.saveGender(_selectedGender!);
   }
 
   Widget _buildProgressIndicator() {

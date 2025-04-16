@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/theme.dart';
+import '../services/notification_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,6 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _emergencyName = '';
   String _emergencyContact = '';
   late SharedPreferences _prefs;
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -42,7 +45,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _prefs.setString('evening_time', _timeToString(_eveningTime));
     await _prefs.setString('emergency_name', _emergencyName);
     await _prefs.setString('emergency_contact', _emergencyContact);
-    // Here you would also update notification scheduling
+    
+    // Update notification scheduling
+    if (_notificationsEnabled) {
+      await _notificationService.cancelAllNotifications();
+      await _notificationService.scheduleDailyNotification(
+        _morningTime,
+        1,
+        'Morning Mindfulness',
+      );
+      await _notificationService.scheduleDailyNotification(
+        _afternoonTime,
+        2,
+        'Afternoon Break',
+      );
+      await _notificationService.scheduleDailyNotification(
+        _eveningTime,
+        3,
+        'Evening Reflection',
+      );
+    } else {
+      await _notificationService.cancelAllNotifications();
+    }
   }
 
   String _timeToString(TimeOfDay time) {
@@ -130,45 +154,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
+        backgroundColor: AppTheme.primaryMint,
       ),
       body: SafeArea(
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
-          children: [
-            Card(
-              child: SwitchListTile(
-                title: const Text('Enable Notifications'),
-                value: _notificationsEnabled,
-                onChanged: (bool value) {
-                  setState(() {
-                    _notificationsEnabled = value;
-                    _saveSettings();
-                  });
-                },
-              ),
-            ),
-            if (_notificationsEnabled) ...[
-              const SizedBox(height: 16),
-              _buildNotificationTimePicker(
-                'Morning Reminder',
-                _morningTime,
-                (time) => _morningTime = time,
-              ),
-              _buildNotificationTimePicker(
-                'Afternoon Reminder',
-                _afternoonTime,
-                (time) => _afternoonTime = time,
-              ),
-              _buildNotificationTimePicker(
-                'Evening Reminder',
-                _eveningTime,
-                (time) => _eveningTime = time,
-              ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle(context, 'Notifications'),
+              const SizedBox(height: 8),
+              _buildNotificationCard(context),
+              const SizedBox(height: 24),
+              _buildSectionTitle(context, 'Emergency Contact'),
+              const SizedBox(height: 8),
+              _buildEmergencyContactCard(context),
+              const SizedBox(height: 24),
+              _buildSectionTitle(context, 'App Preferences'),
+              const SizedBox(height: 8),
+              _buildPreferencesCard(context),
+              const SizedBox(height: 24),
+              _buildSectionTitle(context, 'About'),
+              const SizedBox(height: 8),
+              _buildAboutCard(context),
             ],
-            const SizedBox(height: 16),
-            _buildEmergencyContactCard(),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+        color: AppTheme.textDark,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  Widget _buildNotificationCard(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          SwitchListTile(
+            title: const Text('Enable Notifications'),
+            subtitle: const Text('Receive reminders for mindfulness exercises'),
+            value: _notificationsEnabled,
+            activeColor: AppTheme.primaryMint,
+            onChanged: (bool value) {
+              setState(() {
+                _notificationsEnabled = value;
+                _saveSettings();
+              });
+            },
+          ),
+          if (_notificationsEnabled) ...[
+            const Divider(height: 1),
+            _buildNotificationTimePicker(
+              'Morning Reminder',
+              _morningTime,
+              (time) => _morningTime = time,
+              Icons.wb_sunny,
+            ),
+            const Divider(height: 1),
+            _buildNotificationTimePicker(
+              'Afternoon Reminder',
+              _afternoonTime,
+              (time) => _afternoonTime = time,
+              Icons.sunny,
+            ),
+            const Divider(height: 1),
+            _buildNotificationTimePicker(
+              'Evening Reminder',
+              _eveningTime,
+              (time) => _eveningTime = time,
+              Icons.nightlight_round,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -177,41 +246,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String label,
     TimeOfDay time,
     Function(TimeOfDay) onTimeChanged,
+    IconData icon,
   ) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        title: Text(label),
-        subtitle: Text('${time.format(context)}'),
-        trailing: IconButton(
-          icon: const Icon(Icons.access_time),
-          onPressed: () async {
-            final TimeOfDay? newTime = await _selectTime(context, time);
-            if (newTime != null) {
-              setState(() {
-                onTimeChanged(newTime);
-                _saveSettings();
-              });
-            }
-          },
-        ),
+    return ListTile(
+      leading: Icon(icon, color: AppTheme.primaryMint),
+      title: Text(label),
+      subtitle: Text('${time.format(context)}'),
+      trailing: IconButton(
+        icon: const Icon(Icons.access_time),
+        onPressed: () async {
+          final TimeOfDay? newTime = await _selectTime(context, time);
+          if (newTime != null) {
+            setState(() {
+              onTimeChanged(newTime);
+              _saveSettings();
+            });
+          }
+        },
       ),
     );
   }
 
-  Widget _buildEmergencyContactCard() {
+  Widget _buildEmergencyContactCard(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: ListTile(
-        title: const Text('Emergency Contact'),
-        subtitle: _emergencyName.isNotEmpty
-            ? Text('$_emergencyName\n$_emergencyContact')
-            : const Text('No emergency contact set'),
-        isThreeLine: true,
-        trailing: IconButton(
-          icon: const Icon(Icons.edit),
-          onPressed: _showEmergencyContactDialog,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppTheme.emergencyRed.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.emergency,
+            color: AppTheme.emergencyRed,
+          ),
         ),
+        title: Text(_emergencyName.isEmpty ? 'Add Emergency Contact' : _emergencyName),
+        subtitle: Text(_emergencyContact.isEmpty ? 'Tap to add contact details' : _emergencyContact),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: _showEmergencyContactDialog,
+      ),
+    );
+  }
+
+  Widget _buildPreferencesCard(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(Icons.dark_mode, color: AppTheme.primaryMint),
+            title: const Text('Dark Mode'),
+            trailing: Switch(
+              value: false,
+              activeColor: AppTheme.primaryMint,
+              onChanged: (value) {
+                // TODO: Implement dark mode
+              },
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(Icons.language, color: AppTheme.primaryMint),
+            title: const Text('Language'),
+            trailing: const Text('English'),
+            onTap: () {
+              // TODO: Implement language selection
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(Icons.privacy_tip, color: AppTheme.primaryMint),
+            title: const Text('Privacy Policy'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.pushNamed(context, '/data-privacy');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAboutCard(BuildContext context) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(Icons.info, color: AppTheme.primaryMint),
+            title: const Text('About Serenity'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              // TODO: Show about dialog
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(Icons.star, color: AppTheme.primaryMint),
+            title: const Text('Rate the App'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              // TODO: Open app store rating
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(Icons.feedback, color: AppTheme.primaryMint),
+            title: const Text('Send Feedback'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              // TODO: Open feedback form
+            },
+          ),
+        ],
       ),
     );
   }

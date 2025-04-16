@@ -1,14 +1,39 @@
 import 'package:flutter/material.dart';
 import '../utils/theme.dart';
+import '../services/user_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final UserService _userService = UserService();
+  String? _userName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final name = await _userService.getName();
+    if (mounted) {
+      setState(() {
+        _userName = name;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
+        backgroundColor: AppTheme.primaryMint,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -35,7 +60,7 @@ class ProfileScreen extends StatelessWidget {
               ListTile(
                 leading: Icon(Icons.person_outline, color: AppTheme.primaryMint),
                 title: const Text('Name'),
-                subtitle: const Text('John Doe'),
+                subtitle: Text(_userName ?? 'Not set'),
               ),
               ListTile(
                 leading: Icon(Icons.email_outlined, color: AppTheme.primaryMint),

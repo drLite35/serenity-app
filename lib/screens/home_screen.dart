@@ -175,6 +175,49 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Serenity'),
+        backgroundColor: AppTheme.primaryMint,
+        elevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: Hero(
+              tag: 'profile',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/profile');
+                  },
+                  customBorder: const CircleBorder(),
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primaryMint.withOpacity(0.5),
+                          AppTheme.secondaryMint.withOpacity(0.5),
+                        ],
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.person,
+                        color: AppTheme.primaryMint,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Stack(
           children: [
@@ -200,71 +243,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Hello${_userName != null ? ', $_userName' : ''}!',
-                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    color: AppTheme.textDark,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  'Welcome to Serenity',
-                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                    color: AppTheme.textLight,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Hero(
-                              tag: 'profile',
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {
-                                    Navigator.pushNamed(context, '/profile');
-                                  },
-                                  customBorder: const CircleBorder(),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(3),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppTheme.primaryMint.withOpacity(0.5),
-                                          AppTheme.secondaryMint.withOpacity(0.5),
-                                        ],
-                                      ),
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 24,
-                                      backgroundColor: Colors.white,
-                                      child: Icon(
-                                        Icons.person,
-                                        color: AppTheme.primaryMint,
-                                        size: 28,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
                         Text(
-                          'Stress Mode',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          'Hello${_userName != null ? ', $_userName' : ''}!',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             color: AppTheme.textDark,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 4),
+                        Text(
+                          'How are you feeling today?',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: AppTheme.textLight,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
                         _buildStressModeSelector(),
                         const SizedBox(height: 24),
                         Row(
