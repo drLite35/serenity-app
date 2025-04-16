@@ -10,6 +10,7 @@ import 'settings_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/exercise_feedback_dialog.dart';
 import '../services/exercise_feedback_service.dart';
+import '../services/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +25,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   int _currentIndex = 0;
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
+  final UserService _userService = UserService();
+  String? _userName;
+  bool _isStressed = false;
+  String _currentThought = '';
+  final List<String> _positiveThoughts = [
+    'Every breath brings a moment of peace.',
+    'You are stronger than you know.',
+    'This moment is a gift, that\'s why it\'s called the present.',
+    'Your mind is a garden, your thoughts are the seeds.',
+    'Peace begins with a smile.',
+    'In the midst of movement, find stillness.',
+    'Today is full of endless possibilities.',
+    'You are exactly where you need to be.',
+  ];
 
   @override
   void initState() {
@@ -39,6 +54,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _scaleAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+
+    _loadUserName();
+    _updateThought();
   }
 
   @override
@@ -55,28 +73,39 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   void _onNavigationTap(int index) {
+    if (_currentIndex == index) return; // Don't navigate if already on the page
+
     setState(() {
       _currentIndex = index;
     });
 
     switch (index) {
-      case 1:
+      case 0: // Home
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
+        }
+        break;
+      case 1: // Exercises
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ExercisesScreen()),
-        );
+        ).then((_) => setState(() => _currentIndex = 0));
         break;
-      case 2:
+      case 2: // Stats
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const StatsScreen()),
-        );
+        ).then((_) => setState(() => _currentIndex = 0));
         break;
-      case 3:
+      case 3: // Settings
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const SettingsScreen()),
-        );
+        ).then((_) => setState(() => _currentIndex = 0));
         break;
     }
   }
@@ -108,14 +137,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
     
     print('Navigating to route: $route for exercise: $exerciseName');
-    final result = await Navigator.pushNamed(
+    await Navigator.pushNamed(
       context,
       route,
       arguments: exerciseName,
     );
     
-    print('Exercise result: $result');
-    if (result == true && mounted) {
+    // Show feedback dialog whenever returning from an exercise
+    if (mounted) {
       final prefs = await SharedPreferences.getInstance();
       showDialog(
         context: context,
@@ -126,6 +155,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
       );
     }
+  }
+
+  Future<void> _loadUserName() async {
+    final name = await _userService.getName();
+    if (mounted) {
+      setState(() {
+        _userName = name;
+      });
+    }
+  }
+
+  void _updateThought() {
+    setState(() {
+      _currentThought = _positiveThoughts[Random().nextInt(_positiveThoughts.length)];
+    });
   }
 
   @override
@@ -163,17 +207,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Hello',
-                                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                    color: AppTheme.textLight,
-                                    fontWeight: FontWeight.w300,
+                                  'Hello${_userName != null ? ', $_userName' : ''}!',
+                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    color: AppTheme.textDark,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 Text(
-                                  'How are you feeling?',
-                                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                                    color: AppTheme.textDark,
-                                    fontWeight: FontWeight.bold,
+                                  'Welcome to Serenity',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: AppTheme.textLight,
                                   ),
                                 ),
                               ],
@@ -215,131 +258,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'Your Stress Level',
+                          'Stress Mode',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: AppTheme.textDark,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Container(
-                          height: 200,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryMint.withOpacity(0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: LineChart(
-                            LineChartData(
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                horizontalInterval: 1,
-                                getDrawingHorizontalLine: (value) {
-                                  return FlLine(
-                                    color: AppTheme.accentGray.withOpacity(0.2),
-                                    strokeWidth: 1,
-                                  );
-                                },
-                              ),
-                              titlesData: FlTitlesData(
-                                show: true,
-                                rightTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                topTitles: AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: (value, meta) {
-                                      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                                      if (value.toInt() >= 0 && value.toInt() < days.length) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(top: 8.0),
-                                          child: Text(
-                                            days[value.toInt()],
-                                            style: TextStyle(
-                                              color: AppTheme.textLight,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                      return const Text('');
-                                    },
-                                  ),
-                                ),
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    getTitlesWidget: (value, meta) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(right: 8.0),
-                                        child: Text(
-                                          value.toInt().toString(),
-                                          style: TextStyle(
-                                            color: AppTheme.textLight,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                              borderData: FlBorderData(show: false),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: [
-                                    FlSpot(0, 3),
-                                    FlSpot(1, 2),
-                                    FlSpot(2, 4),
-                                    FlSpot(3, 3),
-                                    FlSpot(4, 2),
-                                    FlSpot(5, 3),
-                                    FlSpot(6, 2),
-                                  ],
-                                  isCurved: true,
-                                  color: AppTheme.primaryMint,
-                                  barWidth: 3,
-                                  dotData: FlDotData(
-                                    show: true,
-                                    getDotPainter: (spot, percent, barData, index) {
-                                      return FlDotCirclePainter(
-                                        radius: 4,
-                                        color: AppTheme.primaryMint,
-                                        strokeWidth: 2,
-                                        strokeColor: Colors.white,
-                                      );
-                                    },
-                                  ),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppTheme.primaryMint.withOpacity(0.2),
-                                        AppTheme.primaryMint.withOpacity(0.0),
-                                      ],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        _buildStressModeSelector(),
                         const SizedBox(height: 24),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -387,82 +313,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 child: child,
                               );
                             },
-                            child: Hero(
-                              tag: 'exercise_${exercise.title}',
-                              child: Material(
-                                color: Colors.transparent,
-                                child: Card(
-                                  elevation: 4,
-                                  shadowColor: exercise.color.withOpacity(0.2),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: InkWell(
-                                    onTap: () => _navigateToExercise(context, exercise.title),
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(20.0),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(20),
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            exercise.color.withOpacity(0.15),
-                                            exercise.color.withOpacity(0.05),
-                                          ],
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: exercise.color.withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(15),
-                                            ),
-                                            child: Icon(
-                                              exercise.icon,
-                                              size: 28,
-                                              color: exercise.color,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 20),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  exercise.title,
-                                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                    color: AppTheme.textDark,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  exercise.description,
-                                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                                    color: AppTheme.textLight,
-                                                  ),
-                                                  maxLines: 2,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            color: exercise.color,
-                                            size: 16,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                            child: _buildExerciseCard(exercise),
                           ),
                         );
                       },
@@ -600,6 +451,203 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           elevation: 0,
           backgroundColor: Colors.white,
         ),
+      ),
+    );
+  }
+
+  Widget _buildExerciseCard(Exercise exercise) {
+    return Hero(
+      tag: 'exercise_${exercise.title}',
+      child: Material(
+        color: Colors.transparent,
+        child: Card(
+          elevation: 4,
+          shadowColor: exercise.color.withOpacity(0.2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: InkWell(
+            onTap: () => _navigateToExercise(context, exercise.title),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.all(20.0),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    exercise.color.withOpacity(0.15),
+                    exercise.color.withOpacity(0.05),
+                  ],
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: exercise.color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Icon(
+                      exercise.icon,
+                      size: 28,
+                      color: exercise.color,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          exercise.title,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppTheme.textDark,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          exercise.description,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textLight,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.favorite,
+                              size: 16,
+                              color: exercise.color,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${(85 + Random().nextInt(10))}% effective', // Mock effectiveness
+                              style: TextStyle(
+                                color: exercise.color,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: exercise.color,
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStressModeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryMint.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'How are you feeling?',
+            style: TextStyle(
+              color: AppTheme.textDark,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryMint.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.sentiment_satisfied_alt,
+                  color: !_isStressed ? AppTheme.primaryMint : AppTheme.textLight,
+                ),
+                Expanded(
+                  child: Switch(
+                    value: _isStressed,
+                    onChanged: (value) {
+                      setState(() {
+                        _isStressed = value;
+                        if (!_isStressed) {
+                          _updateThought();
+                        }
+                      });
+                    },
+                    activeColor: AppTheme.primaryMint,
+                    activeTrackColor: AppTheme.primaryMint.withOpacity(0.4),
+                    inactiveThumbColor: AppTheme.primaryMint,
+                    inactiveTrackColor: AppTheme.primaryMint.withOpacity(0.2),
+                  ),
+                ),
+                Icon(
+                  Icons.sentiment_dissatisfied,
+                  color: _isStressed ? AppTheme.primaryMint : AppTheme.textLight,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (!_isStressed)
+            Text(
+              _currentThought,
+              style: TextStyle(
+                color: AppTheme.textLight,
+                fontSize: 16,
+                fontStyle: FontStyle.italic,
+              ),
+            )
+          else
+            Row(
+              children: [
+                Icon(
+                  Icons.spa,
+                  color: AppTheme.primaryMint,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Try a recommended exercise below',
+                    style: TextStyle(
+                      color: AppTheme.primaryMint,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }
