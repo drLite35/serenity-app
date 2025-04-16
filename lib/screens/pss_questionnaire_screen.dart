@@ -14,7 +14,7 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
   int _currentQuestion = 0;
-  final List<int?> _answers = List.filled(10, null);
+  final List<int?> _answers = List.filled(13, null);
 
   final List<String> _questions = [
     'In the last month, how often have you been upset because of something that happened unexpectedly?',
@@ -25,8 +25,11 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
     'In the last month, how often have you found that you could not cope with all the things that you had to do?',
     'In the last month, how often have you been able to control irritations in your life?',
     'In the last month, how often have you felt that you were on top of things?',
-    'In the last month, how often have you been angered because of things that happened that were outside of your control?',
-    'In the last month, how often have you felt difficulties were piling up so high that you could not overcome them?',
+    'In the last month, how often have you been angered because of things that were outside of your control?',
+    'In the last month, how often have you felt difficulties were piling up and you could not overcome them?',
+    'What is your typical blood pressure range?',
+    'How would you rate your baseline stress level?',
+    'What is your typical pulse rate range?',
   ];
 
   final List<String> _options = [
@@ -36,6 +39,35 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
     'Fairly Often',
     'Very Often',
   ];
+
+  final List<String> _bpOptions = [
+    'Low',
+    'Normal',
+    'High',
+  ];
+
+  final List<String> _baselineOptions = [
+    'Low',
+    'Normal',
+    'High',
+  ];
+
+  final List<String> _pulseOptions = [
+    'Low',
+    'Normal',
+    'High',
+  ];
+
+  List<String> _getOptionsForQuestion(int questionIndex) {
+    if (questionIndex == 10) {
+      return _bpOptions;
+    } else if (questionIndex == 11) {
+      return _baselineOptions;
+    } else if (questionIndex == 12) {
+      return _pulseOptions;
+    }
+    return _options;
+  }
 
   @override
   void initState() {
@@ -72,21 +104,76 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
   }
 
   void _showResults() {
-    // Calculate PSS score
-    int score = 0;
-    for (int i = 0; i < _answers.length; i++) {
+    // Calculate PSS score (only from first 10 questions)
+    // Each question is scored from 0-4 (Never to Very Often)
+    // For positively stated items (4,5,7,8), the scoring is reversed
+    int totalScore = 0;
+
+    // Process first 10 questions only for PSS score
+    for (int i = 0; i < 10; i++) {
       if (_answers[i] != null) {
-        // Questions 4, 5, 7, and 8 are positively stated items
+        int answerScore = _answers[i]!;
         if ([3, 4, 6, 7].contains(i)) {
-          score += 4 - (_answers[i] ?? 0);
+          // Reverse scoring for positive items (4,5,7,8)
+          // Convert 0->4, 1->3, 2->2, 3->1, 4->0
+          totalScore += (4 - answerScore);
         } else {
-          score += _answers[i] ?? 0;
+          // Normal scoring for negative items
+          // 0->0, 1->1, 2->2, 3->3, 4->4
+          totalScore += answerScore;
         }
       }
     }
+
+    // Get stress level category based on total score
+    String stressLevel;
+    if (totalScore <= 18) {
+      stressLevel = 'Low';
+    } else if (totalScore <= 26) {
+      stressLevel = 'Moderate';
+    } else {
+      stressLevel = 'High';
+    }
+
+    // Get additional metrics
+    int? bpRange = _answers[10];
+    int? baselinePss = _answers[11];
+    int? pulseRange = _answers[12];
     
-    // Navigate to results screen
-    Navigator.pushReplacementNamed(context, '/pss_results', arguments: score);
+    // Calculate baseline PSS level based on additional metrics
+    int baselineLevel = 1; // Default to normal
+    if (bpRange != null && pulseRange != null) {
+      // Higher values indicate higher stress
+      int stressIndicators = 0;
+      
+      // BP contribution
+      if (bpRange == 2) stressIndicators++; // High BP
+      if (bpRange == 0) stressIndicators--; // Low BP
+      
+      // Pulse contribution
+      if (pulseRange == 2) stressIndicators++; // High pulse
+      if (pulseRange == 0) stressIndicators--; // Low pulse
+      
+      // Determine baseline level
+      if (stressIndicators >= 1) {
+        baselineLevel = 2; // High stress
+      } else if (stressIndicators <= -1) {
+        baselineLevel = 0; // Low stress
+      }
+    }
+    
+    // Navigate to results screen with all scores
+    Navigator.pushReplacementNamed(
+      context, 
+      '/pss_results', 
+      arguments: {
+        'score': totalScore,
+        'stressLevel': stressLevel,
+        'bpRange': bpRange,
+        'baselinePss': baselinePss ?? baselineLevel,
+        'pulseRange': pulseRange,
+      }
+    );
   }
 
   Widget _buildProgressBar() {
@@ -292,10 +379,10 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
                           _buildQuestionCard(_questions[index]),
                           const SizedBox(height: 24),
                           ...List.generate(
-                            _options.length,
+                            _getOptionsForQuestion(index).length,
                             (optionIndex) => _buildOptionButton(
                               optionIndex,
-                              _options[optionIndex],
+                              _getOptionsForQuestion(index)[optionIndex],
                             ),
                           ),
                         ],
