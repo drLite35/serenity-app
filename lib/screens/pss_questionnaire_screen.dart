@@ -104,32 +104,47 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
   }
 
   void _showResults() {
-    // Calculate PSS score (only from first 10 questions)
-    // Each question is scored from 0-4 (Never to Very Often)
-    // For positively stated items (4,5,7,8), the scoring is reversed
-    int totalScore = 0;
+    // Validate that we have all 13 responses
+    if (_answers.any((answer) => answer == null)) {
+      // Handle incomplete responses
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please answer all questions to see your results.'),
+        ),
+      );
+      return;
+    }
 
-    // Process first 10 questions only for PSS score
+    // Calculate raw score for first 10 questions (PSS questions)
+    int rawScore = 0;
     for (int i = 0; i < 10; i++) {
-      if (_answers[i] != null) {
-        int answerScore = _answers[i]!;
-        if ([3, 4, 6, 7].contains(i)) {
-          // Reverse scoring for positive items (4,5,7,8)
-          // Convert 0->4, 1->3, 2->2, 3->1, 4->0
-          totalScore += (4 - answerScore);
-        } else {
-          // Normal scoring for negative items
-          // 0->0, 1->1, 2->2, 3->3, 4->4
-          totalScore += answerScore;
-        }
+      if ([3, 4, 6, 7].contains(i)) {
+        // Reverse scoring for positive items (4,5,7,8)
+        rawScore += 4 - (_answers[i] ?? 0);
+      } else {
+        // Normal scoring for negative items
+        rawScore += _answers[i] ?? 0;
       }
     }
 
-    // Get stress level category based on total score
+    // Calculate additional metrics score (last 3 questions)
+    int additionalScore = 0;
+    for (int i = 10; i < 13; i++) {
+      additionalScore += _answers[i] ?? 0;
+    }
+
+    // Normalize the PSS score to 30-point scale
+    // Formula: (rawScore / maxPossibleScore) * 30
+    double normalizedScore = (rawScore / 40) * 30; // 40 is max possible for first 10 questions
+    
+    // Round to 2 decimal places
+    normalizedScore = double.parse(normalizedScore.toStringAsFixed(2));
+
+    // Determine stress level
     String stressLevel;
-    if (totalScore <= 18) {
+    if (normalizedScore <= 10) {
       stressLevel = 'Low';
-    } else if (totalScore <= 26) {
+    } else if (normalizedScore <= 20) {
       stressLevel = 'Moderate';
     } else {
       stressLevel = 'High';
@@ -167,7 +182,7 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
       context, 
       '/pss_results', 
       arguments: {
-        'score': totalScore,
+        'score': normalizedScore,
         'stressLevel': stressLevel,
         'bpRange': bpRange,
         'baselinePss': baselinePss ?? baselineLevel,

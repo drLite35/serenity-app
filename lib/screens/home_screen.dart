@@ -553,6 +553,67 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  Widget _buildRecommendedExercise() {
+    // Get a random exercise from our list
+    final exercise = randomExercises[Random().nextInt(randomExercises.length)];
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: exercise.color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: exercise.color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              exercise.icon,
+              color: exercise.color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Try this exercise:',
+                  style: TextStyle(
+                    color: AppTheme.textLight,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  exercise.title,
+                  style: TextStyle(
+                    color: AppTheme.textDark,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: exercise.color,
+            ),
+            onPressed: () => _navigateToExercise(context, exercise.title),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStressModeSelector() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -627,26 +688,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             )
           else
-            Row(
-              children: [
-                Icon(
-                  Icons.spa,
-                  color: AppTheme.primaryMint,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Try a recommended exercise below',
-                    style: TextStyle(
-                      color: AppTheme.primaryMint,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _buildRecommendedExercise(),
         ],
       ),
     );

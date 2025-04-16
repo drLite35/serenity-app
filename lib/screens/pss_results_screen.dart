@@ -3,11 +3,11 @@ import '../utils/theme.dart';
 import 'dart:math' as math;
 
 class PSSResultsScreen extends StatefulWidget {
-  final int score;
+  final Map<String, dynamic> results;
 
   const PSSResultsScreen({
     super.key,
-    required this.score,
+    required this.results,
   });
 
   @override
@@ -30,7 +30,7 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
 
     _scoreAnimation = Tween<double>(
       begin: 0,
-      end: widget.score.toDouble(),
+      end: widget.results['score'].toDouble(),
     ).animate(
       CurvedAnimation(
         parent: _controller,
@@ -58,35 +58,71 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
   }
 
   String _getStressLevel() {
-    if (widget.score <= 13) return 'Low Stress';
-    if (widget.score <= 26) return 'Moderate Stress';
+    final score = widget.results['score'] as int;
+    if (score <= 13) return 'Low Stress';
+    if (score <= 26) return 'Moderate Stress';
     return 'High Stress';
   }
 
-  Color _getStressColor() {
-    if (widget.score <= 13) return const Color(0xFF8FC9A3);
-    if (widget.score <= 26) return const Color(0xFFE6B566);
-    return const Color(0xFFE67066);
+  Color _getStressColor(dynamic score) {
+    if (score is double) {
+      if (score <= 10) {
+        return AppTheme.primaryMint;
+      } else if (score <= 20) {
+        return const Color(0xFFE6B566); // Orange
+      } else {
+        return const Color(0xFFE67066); // Red
+      }
+    } else if (score is int) {
+      if (score <= 10) {
+        return AppTheme.primaryMint;
+      } else if (score <= 20) {
+        return const Color(0xFFE6B566); // Orange
+      } else {
+        return const Color(0xFFE67066); // Red
+      }
+    }
+    return AppTheme.primaryMint; // Default color
   }
 
   String _getDescription() {
-    if (widget.score <= 13) {
-      return 'You\'re managing stress well. Keep practicing mindfulness and maintaining your healthy routines.';
-    } else if (widget.score <= 26) {
-      return 'You\'re experiencing moderate stress. Consider incorporating more relaxation techniques into your daily routine.';
+    final score = widget.results['score'] as int;
+    final baselinePss = widget.results['baselinePss'] as int?;
+    final baselineText = baselinePss != null 
+        ? ' Compared to your baseline stress level (${_getBaselineText(baselinePss)}), '
+        : ' ';
+
+    if (score <= 13) {
+      return 'You\'re managing stress well.$baselineText Keep practicing mindfulness and maintaining your healthy routines.';
+    } else if (score <= 26) {
+      return 'You\'re experiencing moderate stress.$baselineText Consider incorporating more relaxation techniques into your daily routine.';
     } else {
-      return 'Your stress levels are high. We recommend focusing on stress management and possibly seeking professional support.';
+      return 'Your stress levels are high.$baselineText We recommend focusing on stress management and possibly seeking professional support.';
+    }
+  }
+
+  String _getBaselineText(int baseline) {
+    switch (baseline) {
+      case 0:
+        return 'Low';
+      case 1:
+        return 'Normal';
+      case 2:
+        return 'High';
+      default:
+        return 'Unknown';
     }
   }
 
   List<String> _getRecommendations() {
-    if (widget.score <= 13) {
+    final score = widget.results['score'] as int;
+    if (score <= 13) {
       return [
         'Continue your mindfulness practice',
         'Maintain regular exercise',
         'Keep up your healthy sleep schedule',
       ];
-    } else if (widget.score <= 26) {
+    } else if (score <= 26) {
       return [
         'Try deep breathing exercises',
         'Practice daily meditation',
@@ -113,7 +149,7 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
           painter: ScoreIndicatorPainter(
             score: _scoreAnimation.value,
             maxScore: 40,
-            color: _getStressColor(),
+            color: _getStressColor(widget.results['score']),
             backgroundColor: AppTheme.primaryMint.withOpacity(0.1),
           ),
           child: Center(
@@ -181,13 +217,13 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: _getStressColor().withOpacity(0.1),
+                              color: _getStressColor(widget.results['score']).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
                               _getStressLevel(),
                               style: TextStyle(
-                                color: _getStressColor(),
+                                color: _getStressColor(widget.results['score']),
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -297,7 +333,7 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.pushReplacementNamed(context, '/biometric_connect');
+                              Navigator.pushReplacementNamed(context, '/home');
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppTheme.primaryMint,
@@ -311,7 +347,7 @@ class _PSSResultsScreenState extends State<PSSResultsScreen>
                               elevation: 0,
                             ),
                             child: const Text(
-                              'Start Your Journey',
+                              'Return to Home',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,
@@ -350,19 +386,20 @@ class ScoreIndicatorPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) / 2;
-    final strokeWidth = radius * 0.2;
+    final strokeWidth = radius * 0.15;
 
-    // Draw background arc
+    // Draw background arc (semicircle)
     final backgroundPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
+    // Draw semicircle background from left to right
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
-      -math.pi * 0.75,
-      math.pi * 1.5,
+      math.pi, // Start from left (180 degrees)
+      math.pi, // Draw half circle (180 degrees)
       false,
       backgroundPaint,
     );
@@ -377,8 +414,8 @@ class ScoreIndicatorPainter extends CustomPainter {
     final progress = score / maxScore;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
-      -math.pi * 0.75,
-      math.pi * 1.5 * progress,
+      math.pi, // Start from left (180 degrees)
+      math.pi * progress, // Draw progress portion
       false,
       scorePaint,
     );
