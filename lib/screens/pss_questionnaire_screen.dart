@@ -35,8 +35,8 @@ class _PSSQuestionnaireScreenState extends State<PSSQuestionnaireScreen>
   ];
 
   final List<String> _options = [
-    'Almost Never',
     'Never',
+    'Almost Never',
     'Sometimes',
     'Fairly Often',
     'Very Often',
